@@ -16,6 +16,7 @@ import win_patch
 
 from crewai import Agent, Task, Crew, Process, LLM
 from tools.docker_tool import DockerSandboxTool
+from tools.file_tools import CodebaseMapper
 
 # =============================================================================
 # LLM Configuration - Ollama Backend
@@ -36,6 +37,9 @@ ollama_llm = LLM(
 # Docker sandbox tool for secure code execution
 docker_tool = DockerSandboxTool()
 
+# Codebase mapper for project structure visibility
+codebase_mapper = CodebaseMapper()
+
 # =============================================================================
 # Agent Definitions
 # =============================================================================
@@ -46,8 +50,13 @@ architect = Agent(
     goal="Create clear, step-by-step implementation plans for coding tasks",
     backstory="""You are an experienced software architect who excels at 
     breaking down complex problems into simple, actionable steps. You provide 
-    clear pseudocode and implementation guidance that developers can follow.""",
+    clear pseudocode and implementation guidance that developers can follow.
+    
+    IMPORTANT: When planning file operations, remember that files saved by the 
+    Executor will persist in the ./workspace directory on the host machine.
+    Use the Codebase Mapper tool to understand the project structure first.""",
     llm=ollama_llm,
+    tools=[codebase_mapper],
     verbose=True
 )
 
@@ -68,7 +77,10 @@ executor = Agent(
     goal="Execute Python code in a secure Docker sandbox and report results",
     backstory="""You are a QA engineer who tests code by running it in an 
     isolated Docker environment. You provide clear feedback about whether 
-    the code works correctly or if there are errors that need fixing.""",
+    the code works correctly or if there are errors that need fixing.
+    
+    NOTE: Any files you create will be saved to ./workspace on the host machine.
+    Dangerous operations (rm, network requests) will require human approval.""",
     llm=ollama_llm,
     tools=[docker_tool],
     verbose=True
